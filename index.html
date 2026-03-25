@@ -196,8 +196,15 @@
         .problem.line-format {
             font-size: 18px;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
+            gap: 6px;
+        }
+
+        .line-equation {
+            display: flex;
+            align-items: center;
             gap: 6px;
             white-space: nowrap;
         }
@@ -205,24 +212,102 @@
         @media (min-width: 768px) {
             .problem.line-format {
                 font-size: 24px;
+            }
+
+            .line-equation {
                 gap: 8px;
             }
         }
 
-        .line-answer {
-            min-width: 30px;
+        .answer-input {
+            width: 60px;
+            font-size: 18px;
+            font-weight: bold;
             text-align: center;
+            border: 2px solid #cbd5e0;
+            border-radius: 6px;
+            padding: 2px 4px;
+            outline: none;
+            background: white;
+            color: #2d3748;
+            transition: border-color 0.2s;
+            -moz-appearance: textfield;
+        }
+
+        .answer-input::-webkit-outer-spin-button,
+        .answer-input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+        }
+
+        .answer-input:focus {
+            border-color: #667eea;
+        }
+
+        .answer-input.correct {
+            border-color: #48bb78;
+            background: #f0fff4;
+            color: #276749;
+        }
+
+        .answer-input.wrong {
+            border-color: #fc8181;
+            background: #fff5f5;
+            color: #c53030;
+        }
+
+        .correct-answer-hint {
+            font-size: 13px;
+            color: #48bb78;
+            font-weight: bold;
         }
 
         @media (min-width: 768px) {
-            .line-answer {
-                min-width: 40px;
+            .answer-input {
+                width: 70px;
+                font-size: 22px;
             }
         }
 
-        .line-answer.hidden {
-            color: transparent;
-            user-select: none;
+        .problem.correct-border {
+            border-color: #48bb78;
+            background: #f0fff4;
+        }
+
+        .problem.wrong-border {
+            border-color: #fc8181;
+            background: #fff5f5;
+        }
+
+        .score-banner {
+            text-align: center;
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 1.3em;
+            font-weight: bold;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .score-banner.show {
+            display: block;
+        }
+
+        .score-banner.great {
+            background: #f0fff4;
+            color: #276749;
+            border: 2px solid #48bb78;
+        }
+
+        .score-banner.ok {
+            background: #fffbeb;
+            color: #744210;
+            border: 2px solid #f6ad55;
+        }
+
+        .score-banner.poor {
+            background: #fff5f5;
+            color: #c53030;
+            border: 2px solid #fc8181;
         }
 
         .problem.vertical-format {
@@ -281,17 +366,16 @@
         .vertical-answer {
             padding-right: 10px;
             min-height: 35px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 6px;
         }
 
         @media (min-width: 768px) {
             .vertical-answer {
                 min-height: 45px;
             }
-        }
-
-        .vertical-answer.hidden {
-            color: transparent;
-            user-select: none;
         }
 
         .info {
@@ -312,6 +396,27 @@
     <div class="container">
         <h1>🎓 Matteøving</h1>
 
+        <div style="text-align:center; margin-bottom: 20px; display:flex; flex-wrap:wrap; gap:12px; justify-content:center; align-items:center;">
+            <input type="text" id="playerName" placeholder="Skriv navnet ditt her..." maxlength="30"
+                style="font-size: 1.1em; padding: 10px 16px; border: 2px solid #e2e8f0; border-radius: 8px; outline: none; text-align: center; width: 100%; max-width: 280px; transition: border-color 0.2s;"
+                onfocus="this.style.borderColor='#667eea'" onblur="this.style.borderColor='#e2e8f0'">
+            <select id="ageSelect" onchange="generateProblems()"
+                style="font-size: 1.1em; padding: 10px 16px; border: 2px solid #e2e8f0; border-radius: 8px; outline: none; cursor: pointer; background: white; color: #2d3748; transition: border-color 0.2s;"
+                onfocus="this.style.borderColor='#667eea'" onblur="this.style.borderColor='#e2e8f0'">
+                <option value="5">5 år</option>
+                <option value="6">6 år</option>
+                <option value="7">7 år</option>
+                <option value="8">8 år</option>
+                <option value="9">9 år</option>
+                <option value="10" selected>10 år</option>
+                <option value="11">11 år</option>
+                <option value="12">12 år</option>
+                <option value="13">13 år</option>
+                <option value="14">14 år</option>
+                <option value="15">15 år</option>
+            </select>
+        </div>
+
         <div class="controls">
             <button class="button button-primary" onclick="toggleFormat()">
                 📝 Bytt format
@@ -319,8 +424,8 @@
             <button class="button button-secondary" onclick="generateProblems()">
                 🎲 Nye oppgaver
             </button>
-            <button class="button button-primary" onclick="toggleAnswers()">
-                👁️ VIS svar
+            <button class="button button-primary" onclick="checkAnswers()">
+                👁️ FASIT
             </button>
         </div>
 
@@ -347,6 +452,8 @@
 
         <div class="problems-container" id="problemsContainer"></div>
 
+        <div class="score-banner" id="scoreBanner"></div>
+
         <div class="info">
             <p>Klikk på "Nye oppgaver" for å få nye regnestykker!</p>
         </div>
@@ -355,7 +462,7 @@
     <script>
         let isLineFormat = true;
         let problems = [];
-        let showAnswers = false;
+        let checked = false;
 
         function getRandomNumber(min, max) {
             return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -367,56 +474,66 @@
             if (document.getElementById('subtraction').checked) operations.push('subtraction');
             if (document.getElementById('multiplication').checked) operations.push('multiplication');
             if (document.getElementById('division').checked) operations.push('division');
-            return operations.length > 0 ? operations : ['addition']; // Default to addition if none selected
+            return operations.length > 0 ? operations : ['addition'];
+        }
+
+        function getDifficultyByAge() {
+            const age = parseInt(document.getElementById('ageSelect').value);
+            // Returns { addMax, subMax, mulMax, divMax }
+            if (age <= 5)  return { addMax: 5,    subMax: 5,    mulMax: 2,  divMax: 2  };
+            if (age === 6) return { addMax: 10,   subMax: 10,   mulMax: 3,  divMax: 3  };
+            if (age === 7) return { addMax: 20,   subMax: 15,   mulMax: 5,  divMax: 5  };
+            if (age === 8) return { addMax: 30,   subMax: 20,   mulMax: 7,  divMax: 7  };
+            if (age === 9) return { addMax: 50,   subMax: 40,   mulMax: 9,  divMax: 9  };
+            if (age === 10)return { addMax: 100,  subMax: 50,   mulMax: 10, divMax: 10 };
+            if (age === 11)return { addMax: 150,  subMax: 100,  mulMax: 12, divMax: 12 };
+            if (age === 12)return { addMax: 200,  subMax: 150,  mulMax: 15, divMax: 15 };
+            if (age === 13)return { addMax: 500,  subMax: 300,  mulMax: 20, divMax: 20 };
+            if (age === 14)return { addMax: 1000, subMax: 500,  mulMax: 25, divMax: 25 };
+            return             { addMax: 1000, subMax: 1000, mulMax: 30, divMax: 30 };
         }
 
         function generateProblem(operation) {
+            const d = getDifficultyByAge();
             let num1, num2, operator, answer;
-
             switch(operation) {
                 case 'addition':
-                    num1 = getRandomNumber(1, 20);
-                    num2 = getRandomNumber(1, 20);
+                    num1 = getRandomNumber(1, d.addMax);
+                    num2 = getRandomNumber(1, d.addMax);
                     operator = '+';
                     answer = num1 + num2;
                     break;
-
                 case 'subtraction':
-                    num1 = getRandomNumber(10, 30);
-                    num2 = getRandomNumber(1, num1); // Ensure positive result
+                    num1 = getRandomNumber(Math.floor(d.subMax / 2), d.subMax);
+                    num2 = getRandomNumber(1, num1);
                     operator = '−';
                     answer = num1 - num2;
                     break;
-
                 case 'multiplication':
-                    num1 = getRandomNumber(1, 10);
-                    num2 = getRandomNumber(1, 10);
+                    num1 = getRandomNumber(1, d.mulMax);
+                    num2 = getRandomNumber(1, d.mulMax);
                     operator = '×';
                     answer = num1 * num2;
                     break;
-
                 case 'division':
-                    num2 = getRandomNumber(2, 10);
-                    answer = getRandomNumber(1, 10);
-                    num1 = num2 * answer; // Ensure whole number result
+                    num2 = getRandomNumber(2, d.divMax);
+                    answer = getRandomNumber(1, d.divMax);
+                    num1 = num2 * answer;
                     operator = '÷';
                     break;
             }
-
             return { num1, num2, operator, answer };
         }
 
         function generateProblems() {
             const operations = getEnabledOperations();
             problems = [];
-
-            // Generate 15 problems
             for (let i = 0; i < 15; i++) {
-                const randomOperation = operations[Math.floor(Math.random() * operations.length)];
-                problems.push(generateProblem(randomOperation));
+                const op = operations[Math.floor(Math.random() * operations.length)];
+                problems.push(generateProblem(op));
             }
-
-            showAnswers = false;
+            checked = false;
+            hideBanner();
             renderProblems();
         }
 
@@ -430,8 +547,11 @@
 
                 if (isLineFormat) {
                     div.innerHTML = `
-                        <span>${problem.num1} ${problem.operator} ${problem.num2} =</span>
-                        <span class="line-answer ${showAnswers ? '' : 'hidden'}">${problem.answer}</span>
+                        <div class="line-equation">
+                            <span>${problem.num1} ${problem.operator} ${problem.num2} =</span>
+                            <input class="answer-input" type="number" id="input-${index}" placeholder="?" autocomplete="off">
+                        </div>
+                        <span class="correct-answer-hint" id="hint-${index}"></span>
                     `;
                 } else {
                     div.innerHTML = `
@@ -441,7 +561,10 @@
                             <span>${problem.num2}</span>
                         </div>
                         <div class="vertical-line"></div>
-                        <div class="vertical-row vertical-answer ${showAnswers ? '' : 'hidden'}">${problem.answer}</div>
+                        <div class="vertical-answer">
+                            <input class="answer-input" type="number" id="input-${index}" placeholder="?" autocomplete="off">
+                            <span class="correct-answer-hint" id="hint-${index}"></span>
+                        </div>
                     `;
                 }
 
@@ -449,13 +572,73 @@
             });
         }
 
-        function toggleFormat() {
-            isLineFormat = !isLineFormat;
-            renderProblems();
+        function checkAnswers() {
+            let correct = 0;
+            const cards = document.querySelectorAll('.problem');
+
+            problems.forEach((problem, index) => {
+                const input = document.getElementById(`input-${index}`);
+                const card = cards[index];
+                const userAnswer = parseInt(input.value, 10);
+
+                if (input.value === '') {
+                    input.classList.remove('correct', 'wrong');
+                    card.classList.remove('correct-border', 'wrong-border');
+                    return;
+                }
+
+                const hint = document.getElementById(`hint-${index}`) || card.querySelector('.correct-answer-hint');
+
+                if (userAnswer === problem.answer) {
+                    correct++;
+                    input.classList.add('correct');
+                    input.classList.remove('wrong');
+                    card.classList.add('correct-border');
+                    card.classList.remove('wrong-border');
+                    if (hint) hint.textContent = '';
+                } else {
+                    input.classList.add('wrong');
+                    input.classList.remove('correct');
+                    card.classList.add('wrong-border');
+                    card.classList.remove('correct-border');
+                    if (hint) hint.textContent = `✓ ${problem.answer}`;
+                }
+            });
+
+            const answered = [...problems.keys()].filter(i => document.getElementById(`input-${i}`).value !== '').length;
+            showBanner(correct, answered);
+            checked = true;
         }
 
-        function toggleAnswers() {
-            showAnswers = !showAnswers;
+        function showBanner(correct, total) {
+            const banner = document.getElementById('scoreBanner');
+            const name = document.getElementById('playerName').value.trim();
+            const pct = total === 0 ? 0 : correct / total;
+            let emoji, msg, cls;
+
+            if (total === 0) {
+                banner.className = 'score-banner show ok';
+                banner.textContent = 'Fyll inn svarene og trykk FASIT! ✏️';
+                return;
+            }
+
+            if (pct === 1)       { emoji = '🌟'; msg = 'Perfekt!';     cls = 'great'; }
+            else if (pct >= 0.7) { emoji = '👍'; msg = 'Bra jobbet!';  cls = 'ok'; }
+            else                 { emoji = '💪'; msg = 'Øv litt til!'; cls = 'poor'; }
+
+            const nameSuffix = name ? ` ${name}!` : '!';
+            banner.className = `score-banner show ${cls}`;
+            banner.textContent = `${emoji} ${correct} av ${total} riktige — ${msg.replace('!', '')}${nameSuffix}`;
+        }
+
+        function hideBanner() {
+            document.getElementById('scoreBanner').className = 'score-banner';
+        }
+
+        function toggleFormat() {
+            isLineFormat = !isLineFormat;
+            checked = false;
+            hideBanner();
             renderProblems();
         }
 
